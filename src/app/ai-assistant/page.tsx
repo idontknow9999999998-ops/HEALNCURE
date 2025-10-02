@@ -17,6 +17,9 @@ type Message = {
   content: string;
 };
 
+// Helper to generate a more unique ID
+const generateUniqueId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
 export default function AIAssistantPage() {
   const searchParams = useSearchParams();
   const categorySlug = searchParams.get("category");
@@ -55,7 +58,7 @@ export default function AIAssistantPage() {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: generateUniqueId(),
       role: "user",
       content: input,
     };
@@ -67,14 +70,14 @@ export default function AIAssistantPage() {
     try {
       const response = await submitMessage(input);
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateUniqueId(),
         role: "assistant",
         content: response,
       };
       setMessages(prev => [...prev, userMessage, assistantMessage]);
     } catch (error) {
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateUniqueId(),
         role: "assistant",
         content: "Sorry, I couldn't get a response. Please try again.",
       };
