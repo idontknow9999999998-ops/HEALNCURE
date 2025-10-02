@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { FirebaseClientProvider } from "@/firebase";
 
 export const metadata: Metadata = {
-  title: "MindBloom",
+  title: "healncure",
   description: "Your personal guide to mental wellness.",
 };
 

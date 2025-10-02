@@ -53,7 +53,7 @@ function DailyQuoteLoader() {
 export default function Home() {
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="MindBloom" />
+      <PageHeader title="healncure" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
         <Suspense>
           <DailyQuoteLoader />
