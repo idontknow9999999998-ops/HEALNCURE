@@ -1,0 +1,97 @@
+/**
+ * @fileoverview Firestore Security Rules for MindBloom.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles and progress data,
+ * while allowing public read access to motivational quotes and mental health categories.
+ *
+ * Data Structure:
+ * - /quotes/{quoteId}: Publicly accessible motivational quotes.
+ * - /mental_health_categories/{categoryId}: Publicly accessible mental health categories.
+ * - /users/{userId}: User profiles, accessible only by the owning user.
+ * - /users/{userId}/progress/{progressId}: User progress data, accessible only by the owning user.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own profile and progress data.
+ * - Public read access is granted to quotes and mental health categories.
+ * - Listing of user documents is disallowed to prevent enumeration.
+ *
+ * Denormalization for Authorization:
+ * - The `UserProgress` documents denormalize the `userId` to allow simple ownership checks.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows public read access to motivational quotes. Only the owner can create, update, or delete quotes.
+     * @path /quotes/{quoteId}
+     * @allow (get, list): Any user can read quotes.
+     * @deny (create, update, delete): No one can create, update, or delete quotes.
+     * @principle Grants public read access while restricting write access.
+     */
+    match /quotes/{quoteId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows public read access to mental health categories. Only the owner can create, update, or delete categories.
+     * @path /mental_health_categories/{categoryId}
+     * @allow (get, list): Any user can read mental health categories.
+     * @deny (create, update, delete): No one can create, update, or delete mental health categories.
+     * @principle Grants public read access while restricting write access.
+     */
+    match /mental_health_categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Enforces user-ownership for user profiles. Only the authenticated user can access their own profile.
+     * @path /users/{userId}
+     * @allow (create): The user can create their own profile if the userId matches their auth.uid.
+     * @allow (get, update, delete): The user can get, update, and delete their own profile if the userId matches their auth.uid.
+     * @allow (list): Listing all users is denied.
+     * @deny (create): The user cannot create a profile with a userId that does not match their auth.uid.
+     * @deny (get, update, delete): The user cannot get, update, or delete another user's profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for user progress data. Only the authenticated user can access their own progress data.
+     * @path /users/{userId}/progress/{progressId}
+     * @allow (create): The user can create their own progress data if the userId matches their auth.uid.
+     * @allow (get, list, update, delete): The user can get, list, update, and delete their own progress data if the userId matches their auth.uid.
+     * @deny (create): The user cannot create progress data with a userId that does not match their auth.uid.
+     * @deny (get, list, update, delete): The user cannot get, list, update, or delete another user's progress data.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/progress/{progressId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+  }
+}
