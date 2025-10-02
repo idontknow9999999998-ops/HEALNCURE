@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useOptimistic } from "react";
+import { useState, useRef, useEffect, useOptimistic, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import PageHeader from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ export default function AIAssistantPage() {
     ]
   );
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,36 +55,36 @@ export default function AIAssistantPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: generateUniqueId(),
-      role: "user",
-      content: input,
-    };
-
-    addOptimisticMessage(userMessage);
+    if (!input.trim() || isPending) return;
+    
+    const currentInput = input;
     setInput("");
-    setIsLoading(true);
 
-    try {
-      const response = await submitMessage(input);
-      const assistantMessage: Message = {
+    startTransition(async () => {
+      const userMessage: Message = {
         id: generateUniqueId(),
-        role: "assistant",
-        content: response,
+        role: "user",
+        content: currentInput,
       };
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
-    } catch (error) {
-      const errorMessage: Message = {
-        id: generateUniqueId(),
-        role: "assistant",
-        content: "Sorry, I couldn't get a response. Please try again.",
-      };
-      setMessages(prev => [...prev, userMessage, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+      addOptimisticMessage(userMessage);
+
+      try {
+        const response = await submitMessage(currentInput);
+        const assistantMessage: Message = {
+          id: generateUniqueId(),
+          role: "assistant",
+          content: response,
+        };
+        setMessages(prev => [...prev, userMessage, assistantMessage]);
+      } catch (error) {
+        const errorMessage: Message = {
+          id: generateUniqueId(),
+          role: "assistant",
+          content: "Sorry, I couldn't get a response. Please try again.",
+        };
+        setMessages(prev => [...prev, userMessage, errorMessage]);
+      }
+    });
   };
 
   return (
@@ -128,7 +128,7 @@ export default function AIAssistantPage() {
             )}
           </div>
         ))}
-         {isLoading && (
+         {isPending && (
             <div className="flex items-start gap-3 justify-start">
                 <Avatar className="w-8 h-8 border">
                     <AvatarFallback>
@@ -154,13 +154,13 @@ export default function AIAssistantPage() {
                 handleSendMessage(e);
               }
             }}
-            disabled={isLoading}
+            disabled={isPending}
           />
           <div className="absolute bottom-3 right-3 flex items-center">
              <kbd className="hidden md:inline-flex pointer-events-none select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 mr-2">
                 <span className="text-xs"><CornerDownLeft /></span> Enter
             </kbd>
-            <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+            <Button type="submit" size="icon" disabled={isPending || !input.trim()}>
               <Send className="h-5 w-5" />
             </Button>
           </div>
