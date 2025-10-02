@@ -5,7 +5,7 @@ import BottomNav from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "MindBloom",
+  title: "HealNCure",
   description: "Your personal guide to mental wellness.",
 };
 
