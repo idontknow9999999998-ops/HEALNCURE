@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "depression",
+      "description": "A person looking out a window on a rainy day.",
+      "imageUrl": "https://images.unsplash.com/photo-1593429464529-9b8d56b46ab9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzb2xpdHVkZSUyMHJhaW58ZW58MHx8fHwxNzU5NDEyMzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "solitude rain"
+    },
+    {
+      "id": "anxiety",
+      "description": "Abstract swirling lines representing anxious thoughts.",
+      "imageUrl": "https://images.unsplash.com/photo-1678977254015-fc3f7c93f4ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMGNoYW9zfGVufDB8fHx8MTc1OTQxMjM2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract chaos"
+    },
+    {
+      "id": "stress",
+      "description": "A calm, serene view of stacked pebbles on a beach.",
+      "imageUrl": "https://images.unsplash.com/photo-1636240976456-2c91842b79a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx6ZW4lMjBzdG9uZXN8ZW58MHx8fHwxNzU5MzAwOTkzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "zen stones"
+    },
+    {
+      "id": "overthinking",
+      "description": "A complex maze or labyrinth.",
+      "imageUrl": "https://images.unsplash.com/photo-1615192232476-758a110dac9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYXplJTIwdGhvdWdodHN8ZW58MHx8fHwxNzU5NDEyMzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "maze thoughts"
+    },
+    {
+      "id": "insomnia",
+      "description": "A starry night sky with a crescent moon.",
+      "imageUrl": "https://images.unsplash.com/photo-1509773896068-7fd415d91e2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxuaWdodCUyMHNreXxlbnwwfHx8fDE3NTkzNTE5NjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "night sky"
+    },
+    {
+      "id": "grief",
+      "description": "A single leaf with water droplets, like tears.",
+      "imageUrl": "https://images.unsplash.com/photo-1591123081711-8ced8287da08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsZWFmJTIwdGVhcmRyb3BzfGVufDB8fHx8MTc1OTQxMjM2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "leaf teardrops"
+    },
+    {
+      "id": "burnout",
+      "description": "A burnt-out matchstick next to unburnt ones.",
+      "imageUrl": "https://images.unsplash.com/photo-1573752040309-f4960b47735a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtYXRjaHN0aWNrJTIwYnVybm91dHxlbnwwfHx8fDE3NTk0MTIzNjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "matchstick burnout"
+    },
+    {
+      "id": "self-esteem",
+      "description": "A sunflower turning towards the sun.",
+      "imageUrl": "https://images.unsplash.com/photo-1728116104727-189945a5ff45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdW5mbG93ZXIlMjBzdW58ZW58MHx8fHwxNzU5NDEyMzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sunflower sun"
+    },
+    {
+      "id": "loneliness",
+      "description": "A single tree in a vast, empty field.",
+      "imageUrl": "https://images.unsplash.com/photo-1509472662991-e37a5393fff1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bG9uZSUyMHRyZWV8ZW58MHx8fHwxNzU5Mzc2NDEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "lone tree"
+    },
+    {
+      "id": "anger-management",
+      "description": "A calm ocean horizon at sunrise.",
+      "imageUrl": "https://images.unsplash.com/photo-1565684049091-715d7c3d821d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjYWxtJTIwb2NlYW58ZW58MHx8fHwxNzU5NDEyMzY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "calm ocean"
+    }
+  ]
 }
