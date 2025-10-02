@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PageHeader from "@/components/page-header";
 import {
   Card,
@@ -25,9 +25,22 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import {
+  addDocumentNonBlocking,
+  useAuth,
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  useUser,
+} from "@/firebase";
+import { collection, doc, setDoc } from "firebase/firestore";
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 type Mood = "happy" | "calm" | "neutral" | "anxious" | "sad";
 type MoodLog = {
+  id?: string;
   date: string;
   stress: number;
   mood: Mood;
@@ -42,13 +55,13 @@ const moodColors: Record<Mood, string> = {
 };
 
 const initialData: MoodLog[] = [
-  { date: "2024-07-15", stress: 4, mood: "calm" },
-  { date: "2024-07-16", stress: 6, mood: "anxious" },
-  { date: "2024-07-17", stress: 5, mood: "neutral" },
-  { date: "2024-07-18", stress: 7, mood: "sad" },
-  { date: "2024-07-19", stress: 3, mood: "happy" },
-  { date: "2024-07-20", stress: 2, mood: "calm" },
-  { date: "2024-07-21", stress: 5, mood: "neutral" },
+  { date: "2025-01-15", stress: 4, mood: "calm" },
+  { date: "2025-01-16", stress: 6, mood: "anxious" },
+  { date: "2025-01-17", stress: 5, mood: "neutral" },
+  { date: "2025-01-18", stress: 7, mood: "sad" },
+  { date: "2025-01-19", stress: 3, mood: "happy" },
+  { date: "2025-01-20", stress: 2, mood: "calm" },
+  { date: "2025-01-21", stress: 5, mood: "neutral" },
 ];
 
 const CustomDot = (props: DotProps & { payload: MoodLog }) => {
@@ -66,51 +79,104 @@ const CustomDot = (props: DotProps & { payload: MoodLog }) => {
   );
 };
 
+const SignInPrompt = () => {
+  const auth = useAuth();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline">Track Your Progress</CardTitle>
+        <CardDescription>
+          Sign in to save your mood and stress levels over time.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={() => initiateAnonymousSignIn(auth)} className="w-full">
+          Sign In Anonymously
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function ProgressPage() {
   const { toast } = useToast();
-  const [logs, setLogs] = useState<MoodLog[]>(initialData);
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const progressCollectionRef = useMemoFirebase(
+    () => (user ? collection(firestore, "users", user.uid, "progress") : null),
+    [user, firestore]
+  );
+
+  const {
+    data: logs,
+    isLoading: areLogsLoading,
+    error,
+  } = useCollection<MoodLog>(progressCollectionRef);
+
   const [stressLevel, setStressLevel] = useState(5);
   const [mood, setMood] = useState<Mood>("neutral");
   const [isClient, setIsClient] = useState(false);
+
+  const sortedLogs = useMemo(() => {
+    const data = logs ?? (user ? [] : initialData);
+    return [...data].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [logs, user]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleAddLog = () => {
+  const handleAddLog = async () => {
+    if (!user) return;
+
+    const today = format(new Date(), "yyyy-MM-dd");
     const newLog: MoodLog = {
-      date: format(new Date(), "yyyy-MM-dd"),
+      date: today,
       stress: stressLevel,
       mood: mood,
     };
-    
-    // Check if a log for today already exists
-    const todayLogIndex = logs.findIndex(log => log.date === newLog.date);
 
-    let updatedLogs;
-    if (todayLogIndex > -1) {
-      // Replace today's log
-      updatedLogs = [...logs];
-      updatedLogs[todayLogIndex] = newLog;
+    const todayLog = logs?.find((log) => log.date === today);
+
+    if (todayLog && todayLog.id) {
+      // Update today's log
+      const docRef = doc(
+        firestore,
+        "users",
+        user.uid,
+        "progress",
+        todayLog.id
+      );
+      await setDoc(docRef, newLog, { merge: true });
     } else {
       // Add new log
-      updatedLogs = [...logs, newLog];
+      addDocumentNonBlocking(progressCollectionRef!, newLog);
     }
-    
-    // Sort logs by date
-    updatedLogs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    setLogs(updatedLogs);
+
     toast({
       title: "Progress Logged",
       description: "Your mood and stress level have been saved.",
     });
   };
 
-  return (
-    <div className="flex flex-col h-full">
-      <PageHeader title="Progress" />
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+  const renderContent = () => {
+    if (isUserLoading || (user && areLogsLoading)) {
+      return (
+        <div className="flex justify-center items-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (!user) {
+      return <SignInPrompt />;
+    }
+
+    return (
+      <>
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">How are you today?</CardTitle>
@@ -159,11 +225,19 @@ export default function ProgressPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  Could not load your progress data. Please try again later.
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="h-64 w-full">
-              {isClient && (
+              {isClient && sortedLogs.length > 0 && (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={logs}
+                    data={sortedLogs}
                     margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                   >
                     <XAxis
@@ -200,18 +274,36 @@ export default function ProgressPage() {
                   </LineChart>
                 </ResponsiveContainer>
               )}
+               {isClient && sortedLogs.length === 0 && !areLogsLoading && (
+                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                      <p>No progress logged yet.</p>
+                      <p className="text-sm">Start by logging your mood today!</p>
+                  </div>
+              )}
             </div>
-             <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-xs text-muted-foreground">
-                <p className="font-semibold">Mood Legend:</p>
-                {Object.entries(moodColors).map(([mood, color]) => (
-                    <div key={mood} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                        <span className="capitalize">{mood}</span>
-                    </div>
-                ))}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-xs text-muted-foreground">
+              <p className="font-semibold">Mood Legend:</p>
+              {Object.entries(moodColors).map(([mood, color]) => (
+                <div key={mood} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="capitalize">{mood}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
+      </>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <PageHeader title="Progress" />
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        {renderContent()}
       </main>
     </div>
   );

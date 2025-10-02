@@ -3,9 +3,10 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import BottomNav from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
+import { FirebaseClientProvider } from "@/firebase";
 
 export const metadata: Metadata = {
-  title: "HealNCure",
+  title: "MindBloom",
   description: "Your personal guide to mental wellness.",
 };
 
@@ -25,13 +26,15 @@ export default function RootLayout({
         />
       </head>
       <body className={cn("font-body antialiased", "bg-muted/40")}>
-        <div className="flex flex-col items-center w-full">
-          <div className="w-full max-w-lg min-h-dvh bg-background shadow-2xl flex flex-col">
-            <div className="flex-1 overflow-y-auto pb-20">{children}</div>
-            <BottomNav />
+        <FirebaseClientProvider>
+          <div className="flex flex-col items-center w-full">
+            <div className="w-full max-w-lg min-h-dvh bg-background shadow-2xl flex flex-col">
+              <div className="flex-1 overflow-y-auto pb-20">{children}</div>
+              <BottomNav />
+            </div>
           </div>
-        </div>
-        <Toaster />
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

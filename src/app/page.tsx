@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Suspense } from "react";
 
 const CategoryGrid = () => {
   const categoryImages = PlaceHolderImages.reduce(
@@ -41,17 +42,22 @@ const CategoryGrid = () => {
   );
 };
 
-export default function Home() {
+function DailyQuoteLoader() {
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
   );
   const quote = quotes[dayOfYear % quotes.length];
+  return <DailyQuote quote={quote} />;
+}
 
+export default function Home() {
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="HealNCure" />
+      <PageHeader title="MindBloom" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
-        <DailyQuote quote={quote} />
+        <Suspense>
+          <DailyQuoteLoader />
+        </Suspense>
         <section>
           <h2 className="text-2xl font-headline text-foreground/90 mb-4">
             Explore

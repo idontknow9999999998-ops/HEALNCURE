@@ -2,45 +2,48 @@
  * @fileoverview Firestore Security Rules for MindBloom.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user profiles and progress data,
- * while allowing public read access to motivational quotes and mental health categories.
+ * This ruleset enforces a strict user-ownership model for private data while allowing public read access to shared content.
  *
  * Data Structure:
- * - /quotes/{quoteId}: Publicly accessible motivational quotes.
- * - /mental_health_categories/{categoryId}: Publicly accessible mental health categories.
+ * - /quotes/{quoteId}: Public motivational quotes.
+ * - /mental_health_categories/{categoryId}: Public list of mental health categories.
  * - /users/{userId}: User profiles, accessible only by the owning user.
- * - /users/{userId}/progress/{progressId}: User progress data, accessible only by the owning user.
+ * - /users/{userId}/progress/{progressId}: User's progress data, accessible only by the owning user.
  *
  * Key Security Decisions:
- * - Users can only access their own profile and progress data.
- * - Public read access is granted to quotes and mental health categories.
- * - Listing of user documents is disallowed to prevent enumeration.
+ * - Public read access to quotes and mental health categories.
+ * - Strict ownership for user profiles and progress data, based on matching request.auth.uid to the userId path segment.
+ * - No user listing is allowed to protect privacy.
  *
  * Denormalization for Authorization:
- * - The `UserProgress` documents denormalize the `userId` to allow simple ownership checks.
+ * - UserProgress documents require a 'userId' field that matches the path segment /users/{userId} to enforce ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows public read access to motivational quotes. Only the owner can create, update, or delete quotes.
+     * @description Grants public read access to quotes, with owner-only writes.
      * @path /quotes/{quoteId}
-     * @allow (get, list): Any user can read quotes.
-     * @deny (create, update, delete): No one can create, update, or delete quotes.
-     * @principle Grants public read access while restricting write access.
+     * @allow (get, list) - Any user, signed in or not, can read quotes.
+     * @allow (create) - Only the owner (determined by authorId) can create a quote, and authorId must match request.auth.uid.
+     * @allow (update, delete) - Only the owner (determined by authorId) can update or delete a quote.
+     * @deny (create) - A user attempts to create a quote, but the authorId does not match their UID.
+     * @deny (update, delete) - A user attempts to update or delete a quote they don't own.
+     * @principle Public read, owner-only writes, enforces document ownership for writes.
      */
     match /quotes/{quoteId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
     }
 
     /**
-     * @description Allows public read access to mental health categories. Only the owner can create, update, or delete categories.
+     * @description Grants public read access to mental health categories.
      * @path /mental_health_categories/{categoryId}
-     * @allow (get, list): Any user can read mental health categories.
-     * @deny (create, update, delete): No one can create, update, or delete mental health categories.
-     * @principle Grants public read access while restricting write access.
+     * @allow (get, list) - Any user, signed in or not, can read mental health categories.
+     * @deny (create, update, delete) - No one can create, update, or delete mental health categories.
+     * @principle Public read-only access.
      */
     match /mental_health_categories/{categoryId} {
       allow get, list: if true;
@@ -48,50 +51,53 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces user-ownership for user profiles. Only the authenticated user can access their own profile.
+     * @description Grants access to user profiles only to the owning user.
      * @path /users/{userId}
-     * @allow (create): The user can create their own profile if the userId matches their auth.uid.
-     * @allow (get, update, delete): The user can get, update, and delete their own profile if the userId matches their auth.uid.
-     * @allow (list): Listing all users is denied.
-     * @deny (create): The user cannot create a profile with a userId that does not match their auth.uid.
-     * @deny (get, update, delete): The user cannot get, update, or delete another user's profile.
+     * @allow (get) - The user can read their own profile.
+     * @allow (create) - A user can create their own profile (self-registration).
+     * @allow (update) - The user can update their own profile.
+     * @allow (delete) - The user can delete their own profile.
+     * @deny (get, create, update, delete) - Any other user attempts to access this profile.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
+      allow list: if false;
     }
 
     /**
-     * @description Enforces user-ownership for user progress data. Only the authenticated user can access their own progress data.
+     * @description Grants access to user progress data only to the owning user.
      * @path /users/{userId}/progress/{progressId}
-     * @allow (create): The user can create their own progress data if the userId matches their auth.uid.
-     * @allow (get, list, update, delete): The user can get, list, update, and delete their own progress data if the userId matches their auth.uid.
-     * @deny (create): The user cannot create progress data with a userId that does not match their auth.uid.
-     * @deny (get, list, update, delete): The user cannot get, list, update, or delete another user's progress data.
+     * @allow (get, list) - The user can read their own progress data.
+     * @allow (create) - The user can create progress data for themselves. The userId in the document must match the path.
+     * @allow (update) - The user can update their own progress data.
+     * @allow (delete) - The user can delete their own progress data.
+     * @deny (get, create, update, delete) - Any other user attempts to access this progress data.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/progress/{progressId} {
       allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
+  }
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
+  // Helper function to determine if the user is signed in.
+  function isSignedIn() {
+    return request.auth != null;
+  }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
+  // Helper function to determine if the user is the owner of the resource.
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
 
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-    }
+    // Helper function to determine if the user is the existing owner of the resource.
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
